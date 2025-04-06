@@ -1,68 +1,69 @@
-# miniFS: A Simple File System
+# miniFS: Un système de fichiers simple
 
-## Abstract
+## Abstrait
 
-This document describes the design and implementation of miniFS, a simple file system that supports basic file operations, access rights management, and links. It explains the data structures and algorithms used to implement the file system.
+Ce document se veut une description de nos choix de design pour l'impémentation de miniFS, un système de fichiers proposant des opérations de base sur les fichiers, la gestion des permissions et des liens. Il fait office de description technique des structures de données et algorithmes utilisés pour son fonctionnement.
 
 ## Introduction
 
-miniFS is a simple file system implementation that supports basic file operations (create, delete, copy, move), directory operations (create, delete, navigate), access rights management, and both hard and symbolic links. The file system is implemented as a UNIX file with a simulated partition.
+miniFS propose l'implémentation d'un système de fichiers simple qui permet des opérations telles que la création et la suppression de fichiers et des repertoires, la copie et e déplacement de fichiers et la navigation dans une arborescence. Sont également proposés la gestion des droits d'accès, ainsi que les liens symboliques et en dur. Le système se base sur un fichier UNIX servant de simulation d'une partition. 
 
-This document describes the design decisions, data structures, and algorithms used in the implementation of miniFS.
+Dans le présent document, nous détaillons la raison derrière nos décisions techniques, en décrivant notamment les structures de données et algorithmes mis en place.
 
-## File System Layout
+## Disposition du système de fichiers
 
-The file system is organized into blocks of fixed size (4096 bytes by default). The layout of the file system is as follows:
+Le système de fichiers est organisé en blocs de taille fixe (4096 octets par défaut). La disposition du système de fichiers est la suivante :
 
-- Block 0: Superblock
-- Block 1: Inode bitmap (may span multiple blocks)
-- Block N: Block bitmap (may span multiple blocks)
-- Block M: Inode table (may span multiple blocks)
-- Block P: Data blocks
+- Bloc 0 : Superbloc
+- Bloc 1 : Inode bitmap (peut s'étendre sur plusieurs blocs)
+- Bloc N : Block bitmap (peut s'étendre sur plusieurs blocs)
+- Bloc M : Table des inodes (peut s'étendre sur plusieurs blocs)
+- Bloc P : Blocs de données
 
-### Superblock
+### Superbloc
 
-The superblock contains metadata about the file system, including:
+Le superbloc contient des métadonnées sur le système de fichiers, comprenant :
 
-- Magic number to identify the file system
-- Block size in bytes
-- Total number of blocks
-- Number of free blocks
-- Total number of inodes
-- Number of free inodes
-- Index of the first data block
-- Index of the root directory inode
-- Block numbers for the inode bitmap, block bitmap, and inode table
+- Numéro magique pour identifier le système de fichiers
+- Taille des blocs en octets
+- Nombre total de blocs
+- Nombre de blocs libres
+- Nombre total d'inodes
+- Nombre d'inodes libres
+- Index du premier bloc de données
+- Index de l'inode du répertoire racine
+- Numéros de blocs pour l'inode bitmap, la block bitmap et la table des inodes
+
 
 ### Inode Bitmap
+L'inode bitmap est utilisé pour suivre quels inodes sont libres et lesquels sont utilisés. Chaque bit dans la bitmap correspond à un inode, avec une valeur de 1 indiquant que l'inode est utilisé et 0 indiquant qu'il est libre.
 
-The inode bitmap is used to track which inodes are free and which are in use. Each bit in the bitmap corresponds to one inode, with a value of 1 indicating that the inode is in use and 0 indicating that it is free.
+### Block bitmap
 
-### Block Bitmap
+De façon similaire, la block bitmap traque quels blocs sont libres et lesquels sont utilisés. Chaque bit correspond à un bloc, avec 1 indiquant qu'il est utilisé et 0 indiquant qu'il est libre.
 
-Similarly, the block bitmap tracks which blocks are free and which are in use. Each bit corresponds to one block, with 1 indicating in use and 0 indicating free.
+### Table des inodes
 
-### Inode Table
+La table des inodes contient les inodes de l'ensembe des fichiers, répertoires et liens dans le système de fichiers. Chaque inode est associée à des métadonnées, dont :
 
-The inode table contains the inodes for all files, directories, and links in the file system. Each inode stores metadata about a file, including:
-
-- File type and permissions
-- Owner and group IDs
-- File size in bytes
-- Access, modification, and change times
-- Number of blocks allocated
+- Le type de fichiers et ses permissions
+- Identifiant du propriétaire et du groupe
+- La taille du fichier en octets
+- Timestamp du dernier accès, modification et de mise à jour
+- Nombre de blocs alloué
 - Block pointers (direct and indirect)
-- Number of hard links to this inode
+- Pointeurs vers les blocs du fichier, directs ou indirects
+- Nombre de liens en dur vers cet inode
 
-### Data Blocks
+### Blocs de données
 
-The data blocks store the actual contents of files and directories. For regular files, the data blocks contain the file contents. For directories, they contain directory entries, which map file names to inode numbers.
+Les blocs de données conservent le contenu réel des fichiers et des répertoires. Pour les fichiers simples, les blocs de données contiennent le contenu du fichier. Pour les répertoires, ils contiennent des entrées de répertoire, qui associent les noms de fichiers à leur numéro d'inodes.
 
-## Data Structures
+## Structures de données
 
-### Superblock
+### Superblocs
 
-The superblock structure is defined as follows:
+La structure pour décrire un superbloc est la suivante :
 
 ```c
 typedef struct {
@@ -82,7 +83,7 @@ typedef struct {
 
 ### Inode
 
-The inode structure is defined as follows:
+La structure pour décrire un inode est la suivante :
 
 ```c
 typedef struct {
@@ -100,9 +101,9 @@ typedef struct {
 } fs_inode_t;
 ```
 
-### Directory Entry
+### Entrée dans un répertoire 
 
-The directory entry structure is defined as follows:
+La structure pour décire une entrée dans un répertoire est la suivante :
 
 ```c
 typedef struct {
@@ -113,9 +114,9 @@ typedef struct {
 } fs_dir_entry_t;
 ```
 
-### File System Handle
+### Gestionnaire du système de fichiers
 
-The file system handle structure is used to manage the mounted file system:
+La structure du gestionnaire du système de fichiers est utilisée pour gérer le système de fichiers "mounted", c'est-à-dire quand il est rendu accessibe à l'utilisateur :
 
 ```c
 typedef struct {
@@ -126,17 +127,17 @@ typedef struct {
 } fs_t;
 ```
 
-## Algorithms
+## Algorithmes
 
-### File System Creation
+### Création du système de fichiers
 
 The file system creation algorithm (fs_create) performs the following steps:
 
 1. Create a file of the specified size
-2. Initialize the superblock with appropriate values
-3. Initialize the inode bitmap (all free)
-4. Initialize the block bitmap (mark system blocks as used)
-5. Create the root directory with "." and ".." entries
+3. Initialize the superblock with appropriate values
+4. Initialize the inode bitmap (all free)
+5. Initialize the block bitmap (mark system blocks as used)
+6. Create the root directory with "." and ".." entries
 
 ### Mounting and Unmounting
 
