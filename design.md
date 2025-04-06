@@ -12,7 +12,7 @@ Dans le présent document, nous détaillons la raison derrière nos décisions t
 
 ## Disposition du système de fichiers
 
-Le système de fichiers est organisé en blocs de taille fixe (4096 octets par défaut). La disposition du système de fichiers est la suivante :
+Le système de fichiers est organisé en blocs de taille fixe (4096 octets/4 Ko par défaut - le plus commun dans les systèmes actuels). La disposition du système de fichiers est la suivante :
 
 - Bloc 0 : Superbloc
 - Bloc 1 : Inode bitmap (peut s'étendre sur plusieurs blocs)
@@ -131,86 +131,86 @@ typedef struct {
 
 ### Création du système de fichiers
 
-The file system creation algorithm (fs_create) performs the following steps:
+L'algorithme de création du système de fichiers s'exécute en respectant les étapes qui suivent:
 
-1. Create a file of the specified size
-3. Initialize the superblock with appropriate values
-4. Initialize the inode bitmap (all free)
-5. Initialize the block bitmap (mark system blocks as used)
-6. Create the root directory with "." and ".." entries
+1. Crée un fichier de la taille demandée
+2. Procède à l'initialisation du superbloc avec les valeurs appropriées
+3. Procède à l'initialisation de l'inode bitmap (toutes libres au début)
+4. Procède à l'initialisation de la block bitmap (les blocs sytèmes sont marqués comme utilisés)
+5. Crée le répertoire racine avec les entrées spéciales "." et ".."
 
-### Mounting and Unmounting
+### Mounting et Unmounting
 
-The mounting algorithm (fs_mount) performs the following steps:
+L'algorithme de montage (fs_mount) s'exécute en respectant les étapes qui suivent :
 
-1. Open the file system file
-2. Read the superblock and verify the magic number
-3. Load the block and inode bitmaps into memory
-4. Initialize the file descriptor table
+1. Ouvrir le fichier associé au système de fichiers
+2. Lire le superbloc et vérifier le numéro magique
+3. Charger les block et inode bitmaps en mémoire
+4. Initialiser la table des descripteurs de fichiers
 
-The unmounting algorithm (fs_unmount) performs the following steps:
+L'algorithme de démontage (fs_unmount) s'exécute en respectant les étapes qui suivent :
 
-1. Write the block and inode bitmaps back to disk
-2. Write the superblock back to disk
-3. Free memory used by the bitmaps
-4. Close the file system file
+1. Écrire les block et inode bitmaps sur le disque
+2. Écrire le superbloc sur le disque
+3. Libérer la mémoire utilisée par les bitmaps
+4. Fermer le fichier associé au système de fichiers
 
-### File and Directory Operations
+### Actions sur les fichiers et répertoires
 
-#### File Creation
+#### Création de fichiers
 
-The file creation algorithm (fs_create_file) performs the following steps:
+L'algorithme de création d'un fichier (fs_create_file) s'exécute en respectant les étapes qui suivent :
 
-1. Resolve the parent directory path
-2. Check if the file already exists
-3. Allocate a new inode
-4. Initialize the inode with appropriate values
-5. Write the inode to disk
-6. Add a directory entry to the parent directory
+1. Résoudre le chemin du répertoire parent
+2. Vérifier si le fichier n'existe pas déjà
+3. Allouer un nouvel inode
+4. Initialiser l'inode avec les valeurs adéquates
+5. Écrire l'inode sur le disque
+6. Ajouter une entrée dans le répertoire parent
 
-#### File Deletion
+#### Création de fichiers
 
-The file deletion algorithm (fs_delete) performs the following steps:
+L'algorithme de suppression d'un fichier (fs_delete) s'exécute en respectant les étapes qui suivent :
 
-1. Resolve the parent directory path
-2. Find the file in the parent directory
-3. Read the file's inode
-4. Free all blocks used by the file
-5. Free the inode
-6. Remove the directory entry from the parent directory
+1. Résoudre le chemin du répertoire parent
+2. Trouver le fichier dans le répertoire parent
+3. Lire l'inode du fichier
+4. Libérer tous les blocs utilisés par le fichier
+5. Libérer l'inode
+6. Supprimer l'entrée dans le répertoire parent
 
-#### File Reading and Writing
+#### Lecture et écriture dans les fichiers
 
-The file reading algorithm (fs_read) performs the following steps:
+L'algorithme de lecture du contenu d'un fichier (fs_read) s'exécute en respectant les étapes qui suivent :
 
-1. Verify the file descriptor
-2. Read the file's inode
-3. Calculate the block number and offset for the current position
-4. Read data from the blocks
-5. Update the access time
+1. Vérifier le descripteur de fichier
+2. Lire l'inode du fichier
+3. Calculer le numéro du bloc et le décalage par rapport à la position actuelle
+4. Lire les données depuis les blocs
+5. Mettre à jour la timestamp d'accès
 
-The file writing algorithm (fs_write) performs the following steps:
+L'algorithme d'écriture de contenu dans un fichier (fs_write) s'exécute en respectant les étapes qui suivent :
 
-1. Verify the file descriptor and write permissions
-2. Read the file's inode
-3. Calculate the block number and offset for the current position
-4. Allocate new blocks if necessary
-5. Write data to the blocks
-6. Update the file size and modification time
+1. Vérifier le descripteur de fichier et les permissions d'écriture
+2. Lire l'inode du fichier
+3. Calculer le numéro du bloc et le décalage pour la position actuelle
+4. Allouer de nouveaux blocs si nécessaire
+5. Écrire les données dans les blocs
+6. Mettre à jour la taille du fichier et la timestamp de modification
 
-#### Directory Listing
+#### Lecture du contenu d'un répertoire
 
-The directory listing algorithm traverses the directory blocks and reads the directory entries, displaying information about each file or subdirectory.
+Cet algorithme parcourt les blocs associés au répertoire eten lit les entrées, en restituant les informations sur chaque fichier ou sous-répertoire.
 
-### Access Rights Management
+### Gestion des droits d'accès
 
-The access rights checking algorithm (check_access) verifies that the user has the requested permissions based on the file mode and the user's identity.
+L'algorithme de vérification des droits d'accès (check_access) vérifie que l'utilisateur dispose des permissions demandées en fonction du mode du fichier et de l'identité de l'utilisateur.
 
-The chmod and chown algorithms modify the mode, owner, and group of a file's inode.
+Les algorithmes `chmod` et `chown` modifient le mode, le propriétaire et le groupe dans l'inode d'un fichier.
 
-### Link Management
+### Gestion des liens
 
-#### Hard Links
+#### Liens en dur
 
 The hard link creation algorithm (fs_link) performs the following steps:
 
@@ -219,59 +219,58 @@ The hard link creation algorithm (fs_link) performs the following steps:
 3. Add a directory entry to the parent directory of the new link
 4. Increment the link count in the target inode
 
-#### Symbolic Links
+#### Liens symboliques
 
-The symbolic link creation algorithm (fs_symlink) performs the following steps:
+L'algorithme de création d'un lien symbolique pour un fichier (fs_write) s'exécute en respectant les étapes qui suivent :
 
-1. Allocate a new inode
-2. Initialize the inode as a symbolic link
-3. Allocate a block to store the target path
-4. Write the target path to the block
-5. Add a directory entry to the parent directory
+1. Allouer un nouvel inode
+2. Initialiser le type dans l'inode comme un lien symbolique
+3. Allouer un bloc pour stocker le chemin cible du lien
+4. Écrire le chemin dans le bloc
+5. Ajouter une entrée dans le répertoire parent
 
-### Free Space Management
+### Gestion de l'espace libre
 
-Free space is managed using the block and inode bitmaps. When a block or inode is allocated, the corresponding bit in the bitmap is set to 1. When a block or inode is freed, the corresponding bit is cleared (set to 0).
+L'espace libre est géré à l'aide des bitmaps des blocs et des inodes. Lorsqu'un bloc ou un inode est alloué, le bit correspondant dans la bitmap est défini sur 1. Lorsqu'un bloc ou un inode est libéré, le bit correspondant est réinitialisé (défini sur 0).
 
-The algorithms for allocating and freeing blocks and inodes use the bitmap functions to find free resources and mark resources as free or in use.
+Les algorithmes pour allouer et libérer des blocs et des inodes utilisent les fonctions de la bitmap pour trouver les ressources libres et marquer les ressources comme libres ou en cours d'utilisation.
 
-## Performance Considerations
+## Performance
 
-### Caching
+### Cache
 
-The file system caches the superblock, block bitmap, and inode bitmap in memory to reduce disk I/O. However, file data is not cached, which means each read or write operation requires disk access.
+Le système de fichiers met en cache le superbloc, et la block et inode bitmap en mémoire pour réduire les opérations d'entrée/sortie sur disque. Cependant, les données des fichiers ne sont pas mises en cache, ce qui signifie que chaque opération de lecture ou d'écriture nécessite un accès au disque.
 
-### Disk Layout
+### Organisation sur le disque
 
-The disk layout is designed to minimize seek time by placing related structures close together. For example, the inode bitmap, block bitmap, and inode table are placed at the beginning of the disk, followed by the data blocks.
+La disposition du disque est conçue pour minimiser le temps de recherche en plaçant à proximité les structures liées. Par exemple, la bitmap des inodes, la bitmap des blocs et la table des inodes sont  au début du disque, suivies des blocs de données.
 
-### Block Size
+### Taille des blocs
 
-The default block size is 4096 bytes, which is a common choice for file systems. This size is a trade-off between space efficiency (larger blocks waste more space due to internal fragmentation) and I/O efficiency (larger blocks reduce the number of disk accesses).
+La taille par défaut d'un bloc est de 4096 octets, ou 4 Ko, un choix courant pour beaucoup de système de fichiers et SE. Elle se veut un compromis entre l'efficacité liée à 'espace (des blocs plus lourds ont tendance à en gaspiller en raison de la fragmentation interne, moins de chance d'avoir une partie inutilisée du bloc) et l'efficacité des entrées/sorties (des blocs plus lourds réduisent le nombre d'accès au disque, évitant de devoir gérer de nombreux petits blocs). Ele est donc à mis-chemin et convient à de nombreux types de fichiers.
 
-## Limitations and Future Work
+## Limites et pistes d'amélioration
 
-### Limitations
+### Limites
 
-The current implementation has several limitations:
+L'implémentation actuelle présente plusieurs limites :
 
-- No support for journaling or crash recovery
-- Limited file size (maximum of 12 direct blocks + 1 indirect block)
-- No support for file locking
-- No support for file attributes beyond the standard UNIX attributes
+- Pas de prise en charge de la journalisation
+- Taille de fichier limitée (maximum de 12 blocs directs + 1 bloc indirect)
+- Pas de support pour les attributs de fichier au-delà des attributs UNIX standards
 
-### Future Work
+### Pistes d'amélioration
 
-Possible extensions to the file system include:
+Les extensions possibles du système de fichiers incluent :
 
-- Adding support for double and triple indirect blocks to allow larger files
-- Implementing journaling for crash recovery
-- Adding support for file locking for concurrent access
-- Implementing file caching to improve performance
-- Adding support for extended attributes
+- Ajouter les blocs indirects doubles et triples pour permettre des fichiers plus volumineux
+- Implémenter la journalisation pour la récupération après crash
+- Ajouter le verrouillage de fichier pour un accès concurrent
+- Implémenter la mise en cache des fichiers pour améliorer les performances
+- Ajouter la prise en charge d'attributs étendus
 
 ## Conclusion
 
-miniFS is a simple but functional file system that provides the basic features required for file management. Its design is inspired by traditional UNIX file systems, with inodes, blocks, and bitmaps for free space management.
+miniFS est un système de fichiers simple mais fonctionnel qui fournit les fonctionnalités de base requises pour la gestion des fichiers. Sa conception est inspirée des systèmes de fichiers UNIX traditionnels, avec des inodes, des blocs et des bitmaps pour la gestion de l'espace libre.
 
-The implementation balances simplicity with functionality, providing a good foundation for understanding file system concepts and potentially extending the system with more advanced features. 
+L'implémentation actuelle se veut à la fois simple dans son utilisation et fonctionnement et fonctionnelle, offrant une bonne base pour comprendre les concepts des systèmes de fichiers et potentiellement étendre le système avec des fonctionnalités plus avancées.
